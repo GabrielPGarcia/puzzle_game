@@ -13,32 +13,22 @@
 void __fastcall__ famitone_update(void);
 //#link "music_aftertherain.s"
 extern char after_the_rain_music_data[]; 
+//------------------------Music-------- 
+//#link "music_dangerstreets.s"  
+extern char danger_streets_music_data[];  
+//#link "demosounds.s"  
+extern char demo_sounds[]; 
 
+//--------------------Level-------- 
 #include "level_1.h"
 #include "level_2.h"
 #include "level_3.h"
 #include "level_4.h"
 #include "level_5.h"
 
-//game uses 12:4 fixed point calculations for enemy movements
 
-#define FP_BITS  4
-
-//max size of the game map
-
-#define MAP_WDT      16
-#define MAP_WDT_BIT    4
-#define MAP_HGT      16
-
-
-#define TILE_SIZE    16
-#define TILE_SIZE_BIT  4
-
-
-#define LEVELS_ALL    5
-
-// number of actors (4 h/w sprites each)
-#define NUM_ACTORS 2
+//------------------------Player--------
+#define NUM_ACTORS 1
 
 #define DEF_METASPRITE_2x2(name,code,pal)\
 const unsigned char name[]={\
@@ -56,15 +46,9 @@ const unsigned char name[]={\
         0,      8,      (code)+3,   (pal)|OAM_FLIP_H, \
         128};
 
- 
-//#link "music_dangerstreets.s"  
-extern char danger_streets_music_data[];  
-//#link "demosounds.s"  
-extern char demo_sounds[]; 
 
 
-
-
+//-----------------Player's sprite--------
 DEF_METASPRITE_2x2(playerRStand, 0xd8, 0);
 DEF_METASPRITE_2x2(playerRRun1, 0xdc, 0);
 DEF_METASPRITE_2x2(playerRRun2, 0xe0, 0);
@@ -76,33 +60,27 @@ DEF_METASPRITE_2x2_FLIP(playerLRun2, 0xe0, 0);
 DEF_METASPRITE_2x2_FLIP(playerLRun3, 0xe4, 0);
 
 DEF_METASPRITE_2x2(personToSave, 0xba, 1);
-///// ACTORS
 
+const unsigned char* const playerRunSeq[16] = 
+{
+  playerLRun1, playerLRun2, playerLRun3, playerLRun1, playerLRun2, playerLRun3, 
+  playerLRun1, playerLRun2, playerRRun1, playerRRun2, playerRRun3, 
+  playerRRun1, playerRRun2, playerRRun3, playerRRun1, playerRRun2  
+};
+//--------------------Player's action--------
 typedef enum ActorState {
   INACTIVE, STANDING, WALKING, CLIMBING, JUMPING, FALLING, PACING
 };
 
+//---------------------Actor type--------
 typedef enum ActorType {
   ACTOR_PLAYER, ACTOR_ENEMY, ACTOR_RESCUE
 };
 
-const unsigned char* const playerRunSeq[16] = {
-  playerLRun1, playerLRun2, playerLRun3, 
-  playerLRun1, playerLRun2, playerLRun3, 
-  playerLRun1, playerLRun2, 
-  playerRRun1, playerRRun2, playerRRun3, 
-  playerRRun1, playerRRun2, playerRRun3, 
-  playerRRun1, playerRRun2  
-};
-// actor x/y positions
-byte actor_x[NUM_ACTORS];
-byte actor_y[NUM_ACTORS];
-// actor x/y deltas per frame (signed)
-sbyte actor_dx[NUM_ACTORS];
-sbyte actor_dy[NUM_ACTORS];
 
+//---------------------Player Actor--------
 const char PALETTE[32] = { 
-  0x03,			// screen color
+  0x99,			// screen color
 
   0x11,0x30,0x27,0x0,	// background palette 0
   0x1c,0x20,0x2c,0x0,	// background palette 1
@@ -114,96 +92,27 @@ const char PALETTE[32] = {
   0x0d,0x2d,0x3a,0x0,	// sprite palette 2
   0x0d,0x27,0x2a	// sprite palette 3
 };
-//palettes data
-//all the palettes are designed in NES Screen Tool, then copy/pasted here
-//with Palettes/Put C data to clipboard function
-/*{pal:"nes",layout:"nes"}*/
-const unsigned char palGame1[16]={ 
-  0x0f,0x11,0x32,0x30,
-  0x0f,0x1c,0x2c,0x3c,
-  0x0f,0x09,0x27,0x38,
-  0x0f,0x11,0x21,0x31 };
-/*{pal:"nes",layout:"nes"}*/
-const unsigned char palGame2[16]={ 
-  0x0f,0x11,0x32,0x30,
-  0x0f,0x11,0x21,0x31,
-  0x0f,0x07,0x27,0x38,
-  0x0f,0x13,0x23,0x33 };
-/*{pal:"nes",layout:"nes"}*/
-const unsigned char palGame3[16]={ 
-  0x0f,0x11,0x32,0x30,
-  0x0f,0x15,0x25,0x35,
-  0x0f,0x05,0x27,0x38,
-  0x0f,0x13,0x23,0x33 };
-/*{pal:"nes",layout:"nes"}*/
-const unsigned char palGame4[16]={ 
-  0x0f,0x11,0x32,0x30,
-  0x0f,0x19,0x29,0x39,
-  0x0f,0x0b,0x27,0x38,
-  0x0f,0x17,0x27,0x37 };
-/*{pal:"nes",layout:"nes"}*/
-const unsigned char palGame5[16]={ 
-  0x0f,0x11,0x32,0x30,
-  0x0f,0x16,0x26,0x36,
-  0x0f,0x07,0x27,0x38,
-  0x0f,0x18,0x28,0x38 };
-/*{pal:"nes",layout:"nes"}*/
-const unsigned char palGameSpr[16]={ 
-  0x0f,0x0f,0x29,0x30,
-  0x0f,0x0f,0x26,0x30,
-  0x0f,0x0f,0x24,0x30,
-  0x0f,0x0f,0x21,0x30 };
-/*{pal:"nes",layout:"nes"}*/
-const unsigned char palTitle[16]={ 
-  0x0f,0x0f,0x0f,0x0f,
-  0x0f,0x1c,0x2c,0x3c,
-  0x0f,0x12,0x22,0x32,
-  0x0f,0x14,0x24,0x34 };
+
+byte actor_x[NUM_ACTORS];
+byte actor_y[NUM_ACTORS];
+sbyte actor_dx[NUM_ACTORS];
+sbyte actor_dy[NUM_ACTORS];
+
+
 
 typedef struct Actor {
   word yy;		// Y position in pixels (16 bit)
   byte x;		// X position in pixels (8 bit)
   byte y;		// X position in pixels (8 bit)
-  byte floor;		// floor index
   byte state;		// ActorState
-  sbyte yvel;		// Y velocity (when jumping)
-  sbyte xvel;		// X velocity (when jumping)
-  int name:2;		// ActorType (2 bits)
-  int pal:2;		// palette color (2 bits)
-  int dir:1;		// direction (0=right, 1=left)
+  //int dir:1;		// direction (0=right, 1=left)
   int onscreen:1;	// is actor onscreen?
 } Actor;
 
-Actor actors[1];	// all actors
+Actor actors;	// all actors
 
-void move_actor(struct Actor* actor, byte joystick) {
-  switch (actor->state) {
-      
-    case STANDING:
-    case WALKING:
-      // left/right has priority over climbing
-      if (joystick & PAD_UP) {
-        actor->x--;
-        actor->dir = 1;
-        actor->state = WALKING;
-      } 
-      else if (joystick & PAD_LEFT) {
-        actor->x--;
-        actor->dir = 1;
-        actor->state = WALKING;
-      } 
-      else if (joystick & PAD_RIGHT) {
-        actor->x++;
-        actor->dir = 0;
-        actor->state = WALKING;
-      } 
-      else {
-        actor->state = STANDING;
-      }
-      break;
-  }
+//---------------------Player Actor--------
 
-}
 void setup_graphics() 
 {
   ppu_off();
@@ -219,7 +128,7 @@ void setup_graphics()
 
 void main(void)
 {
-  int i;
+  char i;
   char pad;
   char oam_id;
   int lastAct = 0;
@@ -227,26 +136,26 @@ void main(void)
   actor_y[0] = 100;
   actor_dx[0] = 0;
   actor_dy[0] = 0;
+  ppu_off();
+  //pal_bg(level_1);
+  //vram_adr(0x2000);
+  vram_unrle(level_1);
   
-  actor_x[1] = 45;
-  actor_y[1] = 9;
-  actor_dx[1] = 0;
-  actor_dy[1] = 0;
-  
-  vram_adr(NTADR_A(1,2));		// set address
+  vram_adr(NTADR_A(1,2)); // set address
   vram_write("life:", 5);
   famitone_init(danger_streets_music_data);
   //sfx_init(demo_sounds);
   nmi_set_callback(famitone_update);
   music_play(0);
 //sfx_play(0,1);
+  
   setup_graphics();
   
   while(1)
   {
-        oam_id = 0;
+    oam_id = 0;
     
-     for (i=0; i<2; i++) {
+     for (i=0; i<1; i++) {
       // poll controller i (0-1)
       pad = pad_poll(i);
       // move actor[i] left/right
