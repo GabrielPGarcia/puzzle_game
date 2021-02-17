@@ -79,18 +79,17 @@ typedef enum ActorType {
 
 
 //---------------------Player Actor--------
+
+
 const char PALETTE[32] = { 
   0x99,			// screen color
 
-  0x11,0x30,0x27,0x0,	// background palette 0
-  0x1c,0x20,0x2c,0x0,	// background palette 1
-  0x00,0x10,0x20,0x0,	// background palette 2
-  0x06,0x16,0x26,0x0,   // background palette 3
+  0x0f,0x21,0x31,0xf,	// background palette 0
+  0x00,0x00,0x00,0x0,	// background palette 1
+  0x00,0x00,0x00,0x0,	// background palette 2
+  0x00,0x00,0x00,0x0,   // background palette 3
 
-  0x16,0x35,0x24,0x0,	// sprite palette 0
-  0x00,0x37,0x25,0x0,	// sprite palette 1
-  0x0d,0x2d,0x3a,0x0,	// sprite palette 2
-  0x0d,0x27,0x2a	// sprite palette 3
+  0x0f,0x1c,0x30,0x0,	// sprite palette 0
 };
 
 byte actor_x[NUM_ACTORS];
@@ -122,20 +121,61 @@ void setup_graphics()
   pal_all(PALETTE);
   ppu_on_all();
 }
-
+void player_action(char i,char pad, char oam_id)
+{ 
+  oam_id = 0;
+    
+     for (i=0; i<1; i++) {
+      // poll controller i (0-1)
+      pad = pad_poll(i);
+      // move actor[i] left/right
+      if (pad&PAD_LEFT && actor_x[i]>24){ actor_dx[i]=-3;}
+      else if (pad&PAD_RIGHT && actor_x[i]<216){ actor_dx[i]=3;}
+      // move actor[i] up/down
+      if (pad&PAD_UP && actor_y[i]>47) actor_dy[i]=-2;
+      else if (pad&PAD_DOWN && actor_y[i]<191) actor_dy[i]=2;
+    }
+  if(actor_x[0] > 24 &&  actor_x[0] != 216)
+  {
+    actor_dx[0] = - actor_dx[0];
+  }
+  if(actor_x[0] < 216 && actor_x[0] != 24)
+  {
+    actor_dx[0] = - actor_dx[0];
+  }  
+  if(actor_y[0] > 47&&  actor_y[0] != 191)
+  {
+    actor_dy[0] = - actor_dy[0];  
+  }
+  if(actor_y[0] < 191&&  actor_y[0] != 47)
+  {
+    actor_dy[0] = - actor_dy[0];
+  } 
+    for (i=0; i<NUM_ACTORS; i++) {
+      byte runseq = actor_x[i] & 7;
+      if (actor_dx[i] >= 0 )
+        runseq += 8;
+      oam_id = oam_meta_spr(actor_x[i], actor_y[i], oam_id, playerRunSeq[runseq]);
+      actor_x[i] += actor_dx[i];
+      actor_y[i] += actor_dy[i];
+    }
+  if (oam_id!=0) oam_hide_rest(oam_id);
+    // wait for next frame
+    ppu_wait_frame();
+  
+}
 
 
 
 void main(void)
 {
-  char i;
+  char i = 0;
   char pad;
   char oam_id;
-  int lastAct = 0;
   actor_x[0] = 125;
   actor_y[0] = 100;
-  actor_dx[0] = 0;
-  actor_dy[0] = 0;
+  actor_dx[0] = 3;
+  actor_dy[0] = 2;
   ppu_off();
   //pal_bg(level_1);
   //vram_adr(0x2000);
@@ -153,18 +193,27 @@ void main(void)
   
   while(1)
   {
-    oam_id = 0;
+    player_action(i,pad,oam_id);
+
+
+
+  }
+}
+
+void player_actio(char i,char oam_id, char pad, int lastAct)
+{
+      oam_id = 0;
     
      for (i=0; i<1; i++) {
       // poll controller i (0-1)
       pad = pad_poll(i);
       // move actor[i] left/right
-      if (pad&PAD_LEFT && actor_x[i]>3){ actor_dx[i]=-2;lastAct = 0;}
-      else if (pad&PAD_RIGHT && actor_x[i]<236){ actor_dx[i]=2;lastAct = 1;}
+      if (pad&PAD_LEFT && actor_x[i]>24){ actor_dx[i]=-2;lastAct = 0;}
+      else if (pad&PAD_RIGHT && actor_x[i]<216){ actor_dx[i]=2;lastAct = 1;}
       else actor_dx[i]=0;
       // move actor[i] up/down
-      if (pad&PAD_UP && actor_y[i]>3) actor_dy[i]=-2;
-      else if (pad&PAD_DOWN && actor_y[i]<206) actor_dy[i]=2;
+      if (pad&PAD_UP && actor_y[i]>47) actor_dy[i]=-2;
+      else if (pad&PAD_DOWN && actor_y[i]<191) actor_dy[i]=2;
       else actor_dy[i]=0;
     }
     
@@ -179,7 +228,5 @@ void main(void)
   if (oam_id!=0) oam_hide_rest(oam_id);
     // wait for next frame
     ppu_wait_frame();
-
-
-  }
+  
 }
