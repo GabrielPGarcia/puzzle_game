@@ -28,7 +28,7 @@ extern char demo_sounds[];
 
 
 //------------------------Player--------
-#define NUM_ACTORS 1
+#define NUM_ACTORS 2
 
 #define DEF_METASPRITE_2x2(name,code,pal)\
 const unsigned char name[]={\
@@ -108,7 +108,7 @@ typedef struct Actor {
 } Actor;
 
 Actor actors;	// all actors
-Actor enemy[9];	// all actors
+Actor enemy[3];	// all actors
 
 //---------------------Player Actor--------
 
@@ -122,29 +122,79 @@ void setup_graphics()
   ppu_on_all();
 }
 
-void enemy_action(char i,char oam_id)
+
+
+void player_action(char i,char pad, char oam_id, int iRand)
 { 
   oam_id = 0;
-  for (i=0; i<3; i++) 
-  {
+  iRand = (rand()%2);
     
-
-  if(enemy_x[i] > 24 &&  enemy_x[i] != 216)
+     for (i=0; i<3; i++) {
+      // poll controller i (0-1)
+      pad = pad_trigger(0);
+      // move actor[i] left/right
+      if (pad&PAD_LEFT && actor_x[i]+1>24){ actor_dx[i]=-3;}
+      else if (pad&PAD_RIGHT && actor_x[i]+1<216){ actor_dx[i]=3;}
+      // move actor[i] up/down
+      else if (pad&PAD_UP && actor_y[i]+1>47) actor_dy[i]=-2;
+      else if (pad&PAD_DOWN && actor_y[i]+1<191) actor_dy[i]=2;
+    }
+  if(actor_x[0] >= 24 &&  actor_x[0] != 216 )
   {
-    enemy_dx[i] = - enemy_dx[i];
+    actor_dx[0] = - actor_dx[0];
   }
-  if(enemy_x[i] < 216 && enemy_x[i] != 24)
+  if(actor_x[0] <= 216 && actor_x[0] != 24 )
   {
-    enemy_dx[i] = - enemy_dx[i];
+    actor_dx[0] = - actor_dx[0];
   }  
-  if(enemy_y[i] > 47&&  enemy_y[i] != 191)
+  if(actor_y[0] >= 47 &&  actor_y[0] != 191)
   {
-    enemy_dy[i] = - enemy_dy[i];  
+    actor_dy[0] = - actor_dy[0];  
   }
-  if(enemy_y[i] < 191&&  enemy_y[i] != 47)
+  if(actor_y[0] <= 191 &&  actor_y[0] != 47)
   {
-    enemy_dy[i] = - enemy_dy[i];
+    actor_dy[0] = - actor_dy[0];
   } 
+    for (i=0; i<NUM_ACTORS; i++) {
+      byte runseq = actor_x[i] & 7;
+      if (actor_dx[i] >= 0 )
+        runseq += 8;
+      oam_id = oam_meta_spr(actor_x[i], actor_y[i], oam_id, playerRunSeq[runseq]);
+      actor_x[i] += actor_dx[i];
+      actor_y[i] += actor_dy[i];
+    }
+  if (oam_id!=0) oam_hide_rest(oam_id);
+  
+  
+  
+    for (i=0; i<3; i++) 
+  {
+      if(enemy_x[0] == enemy_x[1])
+      {
+        enemy_dx[1] = - enemy_dx[1];
+        enemy_dx[0] = - enemy_dx[0];
+      }
+      if(enemy_y[1] == enemy_y[0] )
+      {
+        enemy_dy[0] = - enemy_dy[0];
+        enemy_dy[1] = - enemy_dy[1];
+      }
+     if(enemy_x[i] > 24 &&  enemy_x[i] != 216)
+     {
+       enemy_dx[i] = - enemy_dx[i];
+     }
+     if(enemy_x[i] < 216 && enemy_x[i] != 24)
+     {
+       enemy_dx[i] = - enemy_dx[i];
+     }  
+     if(enemy_y[i] > 47&&  enemy_y[i] != 191)
+    {
+      enemy_dy[i] = - enemy_dy[i];  
+    }
+    if(enemy_y[i] < 191&&  enemy_y[i] != 47)
+    {
+      enemy_dy[i] = - enemy_dy[i];
+    } 
   }
     for (i=0; i<NUM_ACTORS; i++) {
       byte runseq = enemy_x[i] & 7;
@@ -160,65 +210,31 @@ void enemy_action(char i,char oam_id)
   
 }
 
-
-void player_action(char i,char pad, char oam_id)
-{ 
-  oam_id = 0;
-    
-     for (i=0; i<1; i++) {
-      // poll controller i (0-1)
-      pad = pad_poll(i);
-      // move actor[i] left/right
-      if (pad&PAD_LEFT && actor_x[i]>24){ actor_dx[i]=-3;}
-      else if (pad&PAD_RIGHT && actor_x[i]<216){ actor_dx[i]=3;}
-      // move actor[i] up/down
-      if (pad&PAD_UP && actor_y[i]>47) actor_dy[i]=-2;
-      else if (pad&PAD_DOWN && actor_y[i]<191) actor_dy[i]=2;
-    }
-  if(actor_x[0] > 24 &&  actor_x[0] != 216)
-  {
-    actor_dx[0] = - actor_dx[0];
-  }
-  if(actor_x[0] < 216 && actor_x[0] != 24)
-  {
-    actor_dx[0] = - actor_dx[0];
-  }  
-  if(actor_y[0] > 47&&  actor_y[0] != 191)
-  {
-    actor_dy[0] = - actor_dy[0];  
-  }
-  if(actor_y[0] < 191&&  actor_y[0] != 47)
-  {
-    actor_dy[0] = - actor_dy[0];
-  } 
-    for (i=0; i<NUM_ACTORS; i++) {
-      byte runseq = actor_x[i] & 7;
-      if (actor_dx[i] >= 0 )
-        runseq += 8;
-      oam_id = oam_meta_spr(actor_x[i], actor_y[i], oam_id, playerRunSeq[runseq]);
-      actor_x[i] += actor_dx[i];
-      actor_y[i] += actor_dy[i];
-    }
-  if (oam_id!=0) oam_hide_rest(oam_id);
-    // wait for next frame
-    ppu_wait_frame();
-  
-}
-
 void main(void)
 {
   char i = 0;
+  int k=0;
   char pad;
   char oam_id;
+  
+  int iRand = (rand()%2);
+  
   actor_x[0] = 125;
   actor_y[0] = 100;
   actor_dx[0] = 1;
   actor_dy[0] = 1;
-  
-  enemy_x[i] = 125;
-  enemy_y[i] = 100;
-  enemy_dx[i] = 1;
-  enemy_dy[i] = 1;
+  actor_x[1] = 125;
+  actor_y[1] = -20;
+  iRand = (rand()%2);
+  enemy_x[0] = 50;
+  enemy_y[0] = 50;
+  enemy_dx[0] = iRand-1;
+  enemy_dy[0] = iRand-2;
+  iRand = (rand()%5);
+  enemy_x[1] = 50;
+  enemy_y[1] = 180;
+  enemy_dx[1] = iRand - 2;
+  enemy_dy[1] = iRand - 1;
   ppu_off();
   //pal_bg(level_1);
   //vram_adr(0x2000);
@@ -236,7 +252,6 @@ void main(void)
   
   while(1)
   {
-    player_action(i,pad,oam_id);
-    enemy_action(i,oam_id);
+    player_action(i,pad,oam_id,iRand);
   }
 }
