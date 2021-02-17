@@ -72,11 +72,6 @@ typedef enum ActorState {
   INACTIVE, STANDING, WALKING, CLIMBING, JUMPING, FALLING, PACING
 };
 
-//---------------------Actor type--------
-typedef enum ActorType {
-  ACTOR_PLAYER, ACTOR_ENEMY, ACTOR_RESCUE
-};
-
 
 //---------------------Player Actor--------
 
@@ -97,6 +92,10 @@ byte actor_y[NUM_ACTORS];
 sbyte actor_dx[NUM_ACTORS];
 sbyte actor_dy[NUM_ACTORS];
 
+byte enemy_x[NUM_ACTORS];
+byte enemy_y[NUM_ACTORS];
+sbyte enemy_dx[NUM_ACTORS];
+sbyte enemy_dy[NUM_ACTORS];
 
 
 typedef struct Actor {
@@ -109,6 +108,7 @@ typedef struct Actor {
 } Actor;
 
 Actor actors;	// all actors
+Actor enemy[9];	// all actors
 
 //---------------------Player Actor--------
 
@@ -121,6 +121,46 @@ void setup_graphics()
   pal_all(PALETTE);
   ppu_on_all();
 }
+
+void enemy_action(char i,char oam_id)
+{ 
+  oam_id = 0;
+  for (i=0; i<3; i++) 
+  {
+    
+
+  if(enemy_x[i] > 24 &&  enemy_x[i] != 216)
+  {
+    enemy_dx[i] = - enemy_dx[i];
+  }
+  if(enemy_x[i] < 216 && enemy_x[i] != 24)
+  {
+    enemy_dx[i] = - enemy_dx[i];
+  }  
+  if(enemy_y[i] > 47&&  enemy_y[i] != 191)
+  {
+    enemy_dy[i] = - enemy_dy[i];  
+  }
+  if(enemy_y[i] < 191&&  enemy_y[i] != 47)
+  {
+    enemy_dy[i] = - enemy_dy[i];
+  } 
+  }
+    for (i=0; i<NUM_ACTORS; i++) {
+      byte runseq = enemy_x[i] & 7;
+      if (enemy_dx[i] >= 0 )
+        runseq += 8;
+      oam_id = oam_meta_spr(enemy_x[i], enemy_y[i], oam_id, playerRunSeq[runseq]);
+      enemy_x[i] += enemy_dx[i];
+      enemy_y[i] += enemy_dy[i];
+    }
+  if (oam_id!=0) oam_hide_rest(oam_id);
+    // wait for next frame
+    ppu_wait_frame();
+  
+}
+
+
 void player_action(char i,char pad, char oam_id)
 { 
   oam_id = 0;
@@ -165,8 +205,6 @@ void player_action(char i,char pad, char oam_id)
   
 }
 
-
-
 void main(void)
 {
   char i = 0;
@@ -174,15 +212,20 @@ void main(void)
   char oam_id;
   actor_x[0] = 125;
   actor_y[0] = 100;
-  actor_dx[0] = 3;
-  actor_dy[0] = 2;
+  actor_dx[0] = 1;
+  actor_dy[0] = 1;
+  
+  enemy_x[i] = 125;
+  enemy_y[i] = 100;
+  enemy_dx[i] = 1;
+  enemy_dy[i] = 1;
   ppu_off();
   //pal_bg(level_1);
   //vram_adr(0x2000);
   vram_unrle(level_1);
   
   vram_adr(NTADR_A(1,2)); // set address
-  vram_write("life:", 5);
+  vram_write("Points:", 7);
   famitone_init(danger_streets_music_data);
   //sfx_init(demo_sounds);
   nmi_set_callback(famitone_update);
@@ -194,39 +237,6 @@ void main(void)
   while(1)
   {
     player_action(i,pad,oam_id);
-
-
-
+    enemy_action(i,oam_id);
   }
-}
-
-void player_actio(char i,char oam_id, char pad, int lastAct)
-{
-      oam_id = 0;
-    
-     for (i=0; i<1; i++) {
-      // poll controller i (0-1)
-      pad = pad_poll(i);
-      // move actor[i] left/right
-      if (pad&PAD_LEFT && actor_x[i]>24){ actor_dx[i]=-2;lastAct = 0;}
-      else if (pad&PAD_RIGHT && actor_x[i]<216){ actor_dx[i]=2;lastAct = 1;}
-      else actor_dx[i]=0;
-      // move actor[i] up/down
-      if (pad&PAD_UP && actor_y[i]>47) actor_dy[i]=-2;
-      else if (pad&PAD_DOWN && actor_y[i]<191) actor_dy[i]=2;
-      else actor_dy[i]=0;
-    }
-    
-    for (i=0; i<NUM_ACTORS; i++) {
-      byte runseq = actor_x[i] & 7;
-      if (actor_dx[i] >= 0 & lastAct == 1)
-        runseq += 8;
-      oam_id = oam_meta_spr(actor_x[i], actor_y[i], oam_id, playerRunSeq[runseq]);
-      actor_x[i] += actor_dx[i];
-      actor_y[i] += actor_dy[i];
-    }
-  if (oam_id!=0) oam_hide_rest(oam_id);
-    // wait for next frame
-    ppu_wait_frame();
-  
 }
