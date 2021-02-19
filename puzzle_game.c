@@ -1,5 +1,3 @@
-
-#include "Title.h"
 #include <stdlib.h>
 #include <string.h>
 #include "neslib.h"
@@ -23,6 +21,7 @@ extern char demo_sounds[];
 
 //--------------------Level-------- 
 #include "level_1.h"
+#include "Title.h"
 
 //------------------------Player--------
 #define NUM_ACTORS 2
@@ -133,6 +132,8 @@ char oam_id;
 int iRand;
 int j ;
 int k = 0;
+int InGame = 0;
+
 //---------------------Player Actor--------
 
 void setup_graphics() 
@@ -315,9 +316,9 @@ void game_loop()
   ppu_wait_frame();
 
 }
-
-void main(void)
+void setup()
 {
+  
   iRand = (rand()%2);
   j=0;
   playerp = 0;
@@ -331,23 +332,66 @@ void main(void)
     points[i].state = 175;
   }
   ppu_off();
+  vram_adr(NAMETABLE_A);
   vram_unrle(level_1);
 
-  vram_adr(NTADR_A(1,2)); // set address
+  vram_adr(NTADR_A(1,2)); 
   vram_write("Points:", 7);  
-  vram_adr(NTADR_A(20,2)); // set address
+  vram_adr(NTADR_A(20,2)); 
   vram_write("Lives:", 6);
   famitone_init(danger_streets_music_data);
   //sfx_init(demo_sounds);
   nmi_set_callback(famitone_update);
   music_play(0);
   //sfx_play(0,1);
-
   setup_graphics();
+  InGame = 2;      
+}
 
+
+void main(void)
+{
+
+    pad = pad_trigger(0);
+      
   while(1)
   {
-    oam_id = 0;
-    game_loop();
+    switch(InGame)
+    {
+      case 0:     
+        ppu_off(); 
+        vram_adr(NAMETABLE_A);      
+  	vram_unrle(Title);
+  	setup_graphics(); 
+        InGame = 1;
+        break;
+      case 1:
+        pad = pad_trigger(0);       
+        if(pad&PAD_START){InGame = 2;}        
+        break;
+      case 2:        
+        setup();
+        InGame = 3;  
+        break;
+      case 3:       
+        oam_id = 0;
+        game_loop();
+        if(playerl == 0)
+          InGame = 0;
+        break;
+      case 4:        
+        if(pad&PAD_START)
+        {InGame = 2;}
+        break;
+      case 5:        
+        
+  	ppu_off();                
+  	setup_graphics();         
+        pad = pad_trigger(0);       
+        if(pad&PAD_START)
+        {InGame = 2;}
+        break;
+        
+    }
   }
 }
