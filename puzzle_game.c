@@ -24,7 +24,7 @@ extern char demo_sounds[];
 
 //------------------------Player--------
 #define NUM_ACTORS 2
-#define NUM_ENEMY 4
+#define NUM_ENEMY 2
 
 #define DEF_METASPRITE_2x2(name,code,pal)\
 const unsigned char name[]={\
@@ -120,7 +120,7 @@ typedef struct Points {
   byte state;		// ActorState
 } Points;
 
-Points points[5];
+Points points[3];
 Actor actors;	// all actors
 Actor enemy[4];	// all actors
 int playerp;
@@ -128,6 +128,9 @@ int playerl;
 char i;
 char pad;
 char oam_id;
+int iRand;
+int j ;
+int k = 0;
 //---------------------Player Actor--------
 
 void setup_graphics() 
@@ -147,26 +150,70 @@ void actors_setup(int iRand)
   actor_dy[0] = 1;
   actor_x[1] = 125;
   actor_y[1] = -20;
-  for(i = 0; i < 4; i++)
+  for(i = 0; i < 2; i++)
   {
     iRand=(rand()%5);
-    enemy_x[i] = 50+iRand;
-    enemy_y[i] = 50+iRand;
-    enemy_dx[i] = iRand-1;
-    enemy_dy[i] = 3-iRand;
+    enemy_x[i] = 50+iRand+55;
+    enemy_y[i] = 50+iRand+24;
+    enemy_dx[i] = -3;
+    enemy_dy[i] = 2;
 
   }
 }
-void enemys_action(int iRand)
+void point_to_lives()
 {
+  if(playerp/10%10 == 5 && j == 0)
+  {
+    playerl = playerl+1;
+    j==1;
+  }
+  else if(playerp/10%10 == 0 && j == 1)
+  { 
+    playerl = playerl-1;
+    j==0;
+  }
+  if(playerl >= 9)
+    playerl = 9;
+}
+void pionts_action()
+{  
+  for(i = 0; i<3; i++)
+  {
+    if((points[i].x >= actor_x[0]-4 && points[i].x <= actor_x[0]+8)&& 
+       (points[i].y >= actor_y[0]-2 && points[i].y <= actor_y[0]+4)) 
+    {
+      points[i].state = 0;
+      playerp = playerp + 1;
+    }
 
+    if(points[i].state == 0 )
+    {    
+      points[i].x = (rand()%(35-200))+35;
+      points[i].y = (rand()%(55-180))+55;    
+      points[i].state = 175;
+    }
+    if(points[i].state == 175)
+
+      oam_id = oam_spr(points[i].x, points[i].y, points[i].state, 4, oam_id);
+ }
+  
+  if(playerp<=0)playerp=0;
+  if(playerp >=100)oam_id = oam_spr(63, 15, (playerp/100%10)+48, 4, oam_id);
+  if(playerp >=10)oam_id = oam_spr(69, 15, (playerp/10%10)+48, 4, oam_id);
+  oam_id = oam_spr(75, 15, (playerp%10)+48, 4, oam_id);
+  oam_id = oam_spr(207, 15, (playerl%10)+48, 4, oam_id);
+
+}
+void enemys_action()
+{
+  iRand = (rand()%(2+playerp/100%10));
   for (i=0; i<2; i++) 
   {
-    if((enemy_x[0]+4 >= enemy_x[1]-4 && enemy_x[0]-4 <= enemy_x[1]+4) && 
-       (enemy_y[0]+4 >= enemy_y[1]-4 && enemy_y[0]-4 <= enemy_y[1]+4))
+    if((enemy_x[0] >= enemy_x[1]-2 && enemy_x[0] <= enemy_x[1]+2) && 
+       (enemy_y[0] >= enemy_y[1]-2 && enemy_y[0] <= enemy_y[1]+2))
     {
       enemy_dx[i] = - enemy_dx[i];
-      enemy_dx[0] = - enemy_dx[i]+iRand;
+      enemy_dx[0] = - enemy_dx[i]-iRand;
       enemy_dy[i] = - enemy_dy[i];        
     }
     //-------------wall collision----------
@@ -188,7 +235,7 @@ void enemys_action(int iRand)
       enemy_dy[i] = - enemy_dy[i];
     } 
   }
-  for (i=0; i<NUM_ACTORS; i++) {
+  for (i=0; i<NUM_ENEMY; i++) {
     byte runseq = enemy_x[i] & 7;
     if (enemy_dx[i] >= 0 )
       runseq += 8;
@@ -200,15 +247,16 @@ void enemys_action(int iRand)
 }
 void player_action()
 { 
-  for (i=0; i<3; i++) {
-    // poll controller i (0-1)
+  for (i=0; i<3; i++) 
+  {
     pad = pad_trigger(0);
-    // move actor[i] left/right
-    if (pad&PAD_LEFT && actor_x[i]+1>35 && actor_x[i]+1<200){ actor_dx[i]=-3;playerp = playerp+5;}
-    else if (pad&PAD_RIGHT && actor_x[i]+1>35 && actor_x[i]+1<200){ actor_dx[i]=3;}
-    // move actor[i] up/down
-    else if (pad&PAD_UP && actor_y[i]+1>55) actor_dy[i]=-2;
-    else if (pad&PAD_DOWN && actor_y[i]+1<180) actor_dy[i]=2;
+    if((actor_x[0]>35 && actor_x[0]<200)&&(actor_y[0]>55 && actor_y[0]<180))
+    {
+      if(pad&PAD_LEFT)actor_dx[0]=-3-(playerp/100%10);
+      else if (pad&PAD_RIGHT)actor_dx[0]=3+(playerp/100%10);
+      else if (pad&PAD_UP)actor_dy[0]=-2-(playerp/100%10);
+      else if (pad&PAD_DOWN)actor_dy[0]=2+(playerp/100%10);
+    } 
   }
   //-------------wall collision----------
   if(actor_x[0] >= 24 &&  actor_x[0] != 216 )
@@ -237,7 +285,7 @@ void player_action()
   }
   if (oam_id!=0) oam_hide_rest(oam_id);
 }
-void player_enemy_collision(iRand)
+void player_enemy_collision()
 {
   for (i=0; i<3; i++) 
   {
@@ -250,37 +298,37 @@ void player_enemy_collision(iRand)
   }
 }
 
-void gameLoop(int iRand)
+void game_loop()
 { 
+  
+  pionts_action();
+  point_to_lives();
   iRand = (rand()%4);
 
 
-  if(playerp<=0)playerp=0;
-  if(playerp >=100)oam_id = oam_spr(63, 15, (playerp/100%10)+48, 4, oam_id);
-  if(playerp >=10)oam_id = oam_spr(69, 15, (playerp/10%10)+48, 4, oam_id);
-  oam_id = oam_spr(75, 15, (playerp%10)+48, 4, oam_id);
-
-  oam_id = oam_spr(207, 15, (playerl%10)+48, 4, oam_id);
-
   player_action();
-  player_enemy_collision(iRand);
-  enemys_action(iRand);
-  // wait for next frame
+  player_enemy_collision();
+  enemys_action();
+  
   ppu_wait_frame();
 
 }
 
 void main(void)
 {
-  int iRand = (rand()%2);
-
+  iRand = (rand()%2);
+  j=0;
   playerp = 0;
   playerl = 3;
   i = 0;
   actors_setup(iRand);
+  for(i = 0; i <3; i++)
+  {
+    points[i].x = (rand()%(35-200))+35;
+    points[i].y = (rand()%(55-180))+55;    
+    points[i].state = 175;
+  }
   ppu_off();
-  //pal_bg(level_1);
-  //vram_adr(0x2000);
   vram_unrle(level_1);
 
   vram_adr(NTADR_A(1,2)); // set address
@@ -298,6 +346,6 @@ void main(void)
   while(1)
   {
     oam_id = 0;
-    gameLoop(iRand);
+    game_loop();
   }
 }
