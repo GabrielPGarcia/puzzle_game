@@ -145,6 +145,7 @@ void setup_graphics()
   pal_all(PALETTE);
   ppu_on_all();
 }
+//------------------the actors setup--------------
 void actors_setup(int iRand)
 {
   actor_x[0] = 125;
@@ -163,6 +164,7 @@ void actors_setup(int iRand)
 
   }
 }
+//------------------simple improvement --------------
 void point_to_lives()
 {
   if(playerp/10%10 == 5 && j == 0)
@@ -178,6 +180,7 @@ void point_to_lives()
   if(playerl >= 9)
     playerl = 9;
 }
+//------------------Pionts--------------
 void pionts_action()
 {  
   for(i = 0; i<3; i++)
@@ -207,6 +210,7 @@ void pionts_action()
   oam_id = oam_spr(207, 15, (playerl%10)+48, 4, oam_id);
 
 }
+//------------------enemys actions--------------
 void enemys_action()
 {
   iRand = (rand()%(2+playerp/100%10));
@@ -248,6 +252,8 @@ void enemys_action()
   }
   if (oam_id!=0) oam_hide_rest(oam_id);
 }
+
+//------------------Players actions--------------
 void player_action()
 { 
   for (i=0; i<3; i++) 
@@ -288,6 +294,7 @@ void player_action()
   }
   if (oam_id!=0) oam_hide_rest(oam_id);
 }
+  //-------------if Hit by enemy----------
 void player_enemy_collision()
 {
   for (i=0; i<3; i++) 
@@ -301,6 +308,7 @@ void player_enemy_collision()
   }
 }
 
+//------------------main Game loop--------------
 void game_loop()
 { 
   
@@ -316,6 +324,8 @@ void game_loop()
   ppu_wait_frame();
 
 }
+
+//------------------Setup variables--------------
 void setup()
 {
   
@@ -348,7 +358,7 @@ void setup()
   InGame = 2;      
 }
 
-
+//------------------Main Game--------------
 void main(void)
 {
 
@@ -358,38 +368,31 @@ void main(void)
   {
     switch(InGame)
     {
-      case 0:     
+      case 0:     		//title without loop and move to input state
         ppu_off(); 
         vram_adr(NAMETABLE_A);      
   	vram_unrle(Title);
   	setup_graphics(); 
         InGame = 1;
         break;
-      case 1:
+      case 1:			//get user input to start
         pad = pad_trigger(0);       
         if(pad&PAD_START){InGame = 2;}        
         break;
-      case 2:        
+      case 2:        		// setup witout loop and move to main game loop
         setup();
         InGame = 3;  
         break;
-      case 3:       
+      case 3:               	//main game 
         oam_id = 0;
         game_loop();
         if(playerl == 0)
-          InGame = 0;
+          InGame = 4;
         break;
-      case 4:        
+      case 4:  
+        pad = pad_trigger(0);
         if(pad&PAD_START)
-        {InGame = 2;}
-        break;
-      case 5:        
-        
-  	ppu_off();                
-  	setup_graphics();         
-        pad = pad_trigger(0);       
-        if(pad&PAD_START)
-        {InGame = 2;}
+        {InGame = 0;}
         break;
         
     }
